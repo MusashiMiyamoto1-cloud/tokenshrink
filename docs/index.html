@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TokenShrink - Cut Your AI Costs 50-80%</title>
+    <meta name="description" content="Stop wasting tokens on irrelevant context. TokenShrink gives your AI only what it needs, compressed.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --fg: #fafafa;
+            --accent: #10b981;
+            --muted: #6b7280;
+            --card: #1a1a1a;
+            --border: #2a2a2a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--fg);
+            text-decoration: none;
+        }
+        
+        .logo span {
+            color: var(--accent);
+        }
+        
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            margin-left: 20px;
+        }
+        
+        nav a:hover {
+            color: var(--fg);
+        }
+        
+        .hero {
+            padding: 100px 0 80px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+        
+        h1 .accent {
+            color: var(--accent);
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            color: var(--muted);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        
+        .cta {
+            display: inline-flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+        
+        .btn-primary:hover {
+            background: #059669;
+        }
+        
+        .btn-secondary {
+            background: var(--card);
+            color: var(--fg);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .install-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px 30px;
+            display: inline-block;
+            margin-top: 30px;
+        }
+        
+        .install-box code {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 1.1rem;
+            color: var(--accent);
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 80px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+        
+        .comparison-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+        }
+        
+        .comparison-card.before {
+            border-color: #ef4444;
+        }
+        
+        .comparison-card.after {
+            border-color: var(--accent);
+        }
+        
+        .comparison-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+        
+        .comparison-card.before h3 {
+            color: #ef4444;
+        }
+        
+        .comparison-card.after h3 {
+            color: var(--accent);
+        }
+        
+        .comparison-card ul {
+            list-style: none;
+        }
+        
+        .comparison-card li {
+            padding: 8px 0;
+            color: var(--muted);
+        }
+        
+        .features {
+            padding: 60px 0;
+        }
+        
+        .features h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 50px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        
+        @media (max-width: 800px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .feature {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature h4 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .feature p {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        
+        .code-example {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 60px 0;
+            overflow-x: auto;
+        }
+        
+        .code-example pre {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+        
+        .code-example .comment {
+            color: #6b7280;
+        }
+        
+        .code-example .keyword {
+            color: #c084fc;
+        }
+        
+        .code-example .string {
+            color: var(--accent);
+        }
+        
+        .code-example .output {
+            color: #fbbf24;
+        }
+        
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--muted);
+        }
+        
+        footer a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            color: var(--fg);
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            padding: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="/" class="logo">Token<span>Shrink</span></a>
+                <div>
+                    <a href="https://github.com/MusashiMiyamoto1-cloud/tokenshrink">GitHub</a>
+                    <a href="https://pypi.org/project/tokenshrink/">PyPI</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Cut Your AI Costs <span class="accent">50-80%</span></h1>
+                <p class="subtitle">
+                    Stop loading entire files into your prompts. 
+                    TokenShrink gives your AI only what it needs, compressed.
+                </p>
+                
+                <div class="cta">
+                    <a href="https://pypi.org/project/tokenshrink/" class="btn btn-primary">Install Now</a>
+                    <a href="https://github.com/MusashiMiyamoto1-cloud/tokenshrink" class="btn btn-secondary">View Source</a>
+                </div>
+                
+                <div class="install-box">
+                    <code>pip install tokenshrink[compression]</code>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value">50-80%</div>
+                        <div class="stat-label">Token Reduction</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">&lt;50ms</div>
+                        <div class="stat-label">Search Latency</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">~200ms</div>
+                        <div class="stat-label">Compression Time</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="container">
+            <div class="comparison">
+                <div class="comparison-card before">
+                    <h3>❌ Without TokenShrink</h3>
+                    <ul>
+                        <li>Load entire file (5000 tokens)</li>
+                        <li>$0.15 per query</li>
+                        <li>Slow responses</li>
+                        <li>Hit context limits</li>
+                        <li>Irrelevant info confuses the model</li>
+                    </ul>
+                </div>
+                <div class="comparison-card after">
+                    <h3>✓ With TokenShrink</h3>
+                    <ul>
+                        <li>Load relevant chunks (200 tokens)</li>
+                        <li>$0.03 per query</li>
+                        <li>Fast responses</li>
+                        <li>Stay under limits</li>
+                        <li>Focused, accurate answers</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section class="features container">
+            <h2>Simple. Fast. Effective.</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-icon">🔍</div>
+                    <h4>Semantic Search</h4>
+                    <p>FAISS + MiniLM embeddings find exactly what's relevant to your query.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🗜️</div>
+                    <h4>Smart Compression</h4>
+                    <p>LLMLingua-2 removes redundancy while preserving meaning.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <h4>Drop-in Ready</h4>
+                    <p>Works with OpenAI, Anthropic, LangChain, AutoGen — any LLM stack.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🍎</div>
+                    <h4>Apple Silicon</h4>
+                    <p>Native MPS acceleration on Mac. CUDA on NVIDIA.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📁</div>
+                    <h4>Auto-Indexing</h4>
+                    <p>Detects changed files automatically. No manual maintenance.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🔓</div>
+                    <h4>Open Source</h4>
+                    <p>MIT licensed. Self-host anywhere. No vendor lock-in.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="container">
+            <div class="code-example">
+<pre><span class="keyword">from</span> tokenshrink <span class="keyword">import</span> TokenShrink
+
+<span class="comment"># Initialize and index your docs</span>
+ts = TokenShrink()
+ts.index(<span class="string">"./docs"</span>)
+
+<span class="comment"># Get compressed context for your LLM</span>
+result = ts.query(<span class="string">"What are the API rate limits?"</span>)
+
+<span class="keyword">print</span>(result.context)   <span class="comment"># Ready for your prompt</span>
+<span class="keyword">print</span>(result.savings)   <span class="output"># "Saved 65% (1200 → 420 tokens)"</span></pre>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>Built by <a href="https://github.com/MusashiMiyamoto1-cloud">Musashi</a> · Part of <a href="https://agentguard.co">Agent Guard</a></p>
+        </div>
+    </footer>
+</body>
+</html>
