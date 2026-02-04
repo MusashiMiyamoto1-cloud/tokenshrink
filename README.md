@@ -160,6 +160,25 @@ template = PromptTemplate(
 2. **Search**: Finds relevant chunks via semantic similarity
 3. **Compress**: Removes redundancy while preserving meaning
 
+## Works With REFRAG
+
+[REFRAG](https://arxiv.org/abs/2509.01092) (Meta, 2025) demonstrated that RAG contexts have sparse, block-diagonal attention patterns — most retrieved passages barely interact during decoding. Their compress→sense→expand pipeline achieves 30x TTFT speedup at the **decoding** stage.
+
+TokenShrink is the **upstream** complement: we reduce what goes into the context window *before* decoding starts. Stack them:
+
+```
+Your files → TokenShrink (retrieval + compression) → LLM → REFRAG (decode-time optimization)
+              ↓ 50-80% fewer tokens                        ↓ 30x faster first token
+```
+
+Together, you get end-to-end savings across both retrieval and inference.
+
+### Roadmap: REFRAG-Inspired Features
+
+- **Adaptive compression** — Vary compression ratio per chunk based on information density (REFRAG's "sense" concept applied upstream)
+- **Block-diagonal deduplication** — Detect and remove cross-passage redundancy exploiting attention sparsity patterns
+- **Chunk importance scoring** — Score retrieved chunks by estimated attention weight, compress low-importance chunks more aggressively
+
 ## Configuration
 
 ```python
