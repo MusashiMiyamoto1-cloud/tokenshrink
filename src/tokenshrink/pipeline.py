@@ -1,12 +1,15 @@
 """
 TokenShrink core: FAISS retrieval + LLMLingua compression.
+
+v0.2.0: REFRAG-inspired adaptive compression, deduplication, importance scoring.
 """
 
 import os
 import json
 import hashlib
+import math
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import faiss
@@ -22,6 +25,19 @@ except ImportError:
 
 
 @dataclass
+class ChunkScore:
+    """Per-chunk scoring metadata (REFRAG-inspired)."""
+    index: int
+    text: str
+    source: str
+    similarity: float        # Cosine similarity to query
+    density: float           # Information density (entropy proxy)
+    importance: float        # Combined importance score
+    compression_ratio: float # Adaptive ratio assigned to this chunk
+    deduplicated: bool = False  # Flagged as redundant
+
+
+@dataclass
 class ShrinkResult:
     """Result from a query."""
     context: str
@@ -29,15 +45,120 @@ class ShrinkResult:
     original_tokens: int
     compressed_tokens: int
     ratio: float
+    chunk_scores: list[ChunkScore] = field(default_factory=list)
+    dedup_removed: int = 0
     
     @property
     def savings(self) -> str:
         pct = (1 - self.ratio) * 100
-        return f"Saved {pct:.0f}% ({self.original_tokens} → {self.compressed_tokens} tokens)"
+        extra = ""
+        if self.dedup_removed > 0:
+            extra = f", {self.dedup_removed} redundant chunks removed"
+        return f"Saved {pct:.0f}% ({self.original_tokens} → {self.compressed_tokens} tokens{extra})"
     
     @property
     def savings_pct(self) -> float:
         return (1 - self.ratio) * 100
+
+
+# ---------------------------------------------------------------------------
+#  REFRAG-inspired utilities
+# ---------------------------------------------------------------------------
+
+def _information_density(text: str) -> float:
+    """
+    Estimate information density of text via character-level entropy.
+    Higher entropy ≈ more information-dense (code, data, technical content).
+    Lower entropy ≈ more redundant (boilerplate, filler).
+    Returns 0.0-1.0 normalized score.
+    """
+    if not text:
+        return 0.0
+    
+    freq = {}
+    for ch in text.lower():
+        freq[ch] = freq.get(ch, 0) + 1
+    
+    total = len(text)
+    entropy = 0.0
+    for count in freq.values():
+        p = count / total
+        if p > 0:
+            entropy -= p * math.log2(p)
+    
+    # Normalize: English text entropy is ~4.0-4.5 bits/char
+    # Code/data is ~5.0-6.0, very repetitive text is ~2.0-3.0
+    # Map to 0-1 range with midpoint at ~4.5
+    normalized = min(1.0, max(0.0, (entropy - 2.0) / 4.0))
+    return normalized
+
+
+def _compute_importance(similarity: float, density: float, 
+                        sim_weight: float = 0.7, density_weight: float = 0.3) -> float:
+    """
+    Combined importance score from similarity and density.
+    REFRAG insight: not all retrieved chunks contribute equally.
+    High similarity + high density = most important (compress less).
+    Low similarity + low density = least important (compress more or drop).
+    """
+    return sim_weight * similarity + density_weight * density
+
+
+def _adaptive_ratio(importance: float, base_ratio: float = 0.5,
+                    min_ratio: float = 0.2, max_ratio: float = 0.9) -> float:
+    """
+    Map importance score to compression ratio.
+    High importance → keep more (higher ratio, less compression).
+    Low importance → compress harder (lower ratio).
+    
+    ratio=1.0 means keep everything, ratio=0.2 means keep 20%.
+    """
+    # Linear interpolation: low importance → min_ratio, high → max_ratio
+    ratio = min_ratio + importance * (max_ratio - min_ratio)
+    return min(max_ratio, max(min_ratio, ratio))
+
+
+def _deduplicate_chunks(chunks: list[dict], embeddings: np.ndarray,
+                         threshold: float = 0.85) -> tuple[list[dict], list[int]]:
+    """
+    Remove near-duplicate chunks using embedding cosine similarity.
+    REFRAG insight: block-diagonal attention means redundant passages waste compute.
+    
+    Returns: (deduplicated_chunks, removed_indices)
+    """
+    if len(chunks) <= 1:
+        return chunks, []
+    
+    # Compute pairwise similarities
+    # embeddings should already be normalized (from SentenceTransformer with normalize_embeddings=True)
+    sim_matrix = embeddings @ embeddings.T
+    
+    keep = []
+    removed = []
+    kept_indices = set()
+    
+    # Greedy: keep highest-scored chunks, remove near-duplicates
+    # Sort by score descending
+    scored = sorted(enumerate(chunks), key=lambda x: x[1].get("score", 0), reverse=True)
+    
+    for idx, chunk in scored:
+        if idx in removed:
+            continue
+        
+        # Check if this chunk is too similar to any already-kept chunk
+        is_dup = False
+        for kept_idx in kept_indices:
+            if sim_matrix[idx, kept_idx] > threshold:
+                is_dup = True
+                break
+        
+        if is_dup:
+            removed.append(idx)
+        else:
+            keep.append(chunk)
+            kept_indices.add(idx)
+    
+    return keep, removed
 
 
 class TokenShrink:
@@ -59,6 +180,9 @@ class TokenShrink:
         chunk_overlap: int = 50,
         device: str = "auto",
         compression: bool = True,
+        adaptive: bool = True,
+        dedup: bool = True,
+        dedup_threshold: float = 0.85,
     ):
         """
         Initialize TokenShrink.
@@ -70,11 +194,17 @@ class TokenShrink:
             chunk_overlap: Overlap between chunks.
             device: Device for compression (auto, mps, cuda, cpu).
             compression: Enable LLMLingua compression.
+            adaptive: Enable REFRAG-inspired adaptive compression (v0.2).
+            dedup: Enable cross-passage deduplication (v0.2).
+            dedup_threshold: Cosine similarity threshold for dedup (0-1).
         """
         self.index_dir = Path(index_dir or ".tokenshrink")
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self._compression_enabled = compression and HAS_COMPRESSION
+        self._adaptive = adaptive
+        self._dedup = dedup
+        self._dedup_threshold = dedup_threshold
         
         # Auto-detect device
         if device == "auto":
@@ -219,6 +349,8 @@ class TokenShrink:
         min_score: float = 0.3,
         max_tokens: int = 2000,
         compress: Optional[bool] = None,
+        adaptive: Optional[bool] = None,
+        dedup: Optional[bool] = None,
     ) -> ShrinkResult:
         """
         Get relevant, compressed context for a question.
@@ -229,9 +361,11 @@ class TokenShrink:
             min_score: Minimum similarity score (0-1).
             max_tokens: Target token limit for compression.
             compress: Override compression setting.
+            adaptive: Override adaptive compression (REFRAG-inspired).
+            dedup: Override deduplication setting.
             
         Returns:
-            ShrinkResult with context, sources, and token stats.
+            ShrinkResult with context, sources, token stats, and chunk scores.
         """
         if self._index.ntotal == 0:
             return ShrinkResult(
@@ -242,6 +376,9 @@ class TokenShrink:
                 ratio=1.0,
             )
         
+        use_adaptive = adaptive if adaptive is not None else self._adaptive
+        use_dedup = dedup if dedup is not None else self._dedup
+        
         # Retrieve
         embedding = self._model.encode([question], normalize_embeddings=True)
         scores, indices = self._index.search(
@@ -250,10 +387,12 @@ class TokenShrink:
         )
         
         results = []
+        result_embeddings = []
         for score, idx in zip(scores[0], indices[0]):
             if idx >= 0 and score >= min_score:
                 chunk = self._chunks[idx].copy()
                 chunk["score"] = float(score)
+                chunk["_idx"] = int(idx)
                 results.append(chunk)
         
         if not results:
@@ -265,6 +404,60 @@ class TokenShrink:
                 ratio=1.0,
             )
         
+        # ── REFRAG Step 1: Importance scoring ──
+        chunk_scores = []
+        for i, chunk in enumerate(results):
+            density = _information_density(chunk["text"])
+            importance = _compute_importance(chunk["score"], density)
+            comp_ratio = _adaptive_ratio(importance) if use_adaptive else 0.5
+            
+            chunk_scores.append(ChunkScore(
+                index=i,
+                text=chunk["text"][:100] + "..." if len(chunk["text"]) > 100 else chunk["text"],
+                source=chunk["source"],
+                similarity=chunk["score"],
+                density=density,
+                importance=importance,
+                compression_ratio=comp_ratio,
+            ))
+        
+        # ── REFRAG Step 2: Cross-passage deduplication ──
+        dedup_removed = 0
+        if use_dedup and len(results) > 1:
+            # Get embeddings for dedup
+            chunk_texts = [c["text"] for c in results]
+            chunk_embs = self._model.encode(chunk_texts, normalize_embeddings=True)
+            
+            deduped, removed_indices = _deduplicate_chunks(
+                results, np.array(chunk_embs, dtype=np.float32),
+                threshold=self._dedup_threshold
+            )
+            
+            dedup_removed = len(removed_indices)
+            
+            # Mark removed chunks in scores
+            for idx in removed_indices:
+                if idx < len(chunk_scores):
+                    chunk_scores[idx].deduplicated = True
+            
+            results = deduped
+        
+        # Sort remaining by importance (highest first)
+        if use_adaptive:
+            # Pair results with their scores for sorting
+            result_score_pairs = []
+            for chunk in results:
+                # Find matching score
+                for cs in chunk_scores:
+                    if not cs.deduplicated and cs.source == chunk["source"] and cs.similarity == chunk["score"]:
+                        result_score_pairs.append((chunk, cs))
+                        break
+                else:
+                    result_score_pairs.append((chunk, None))
+            
+            result_score_pairs.sort(key=lambda x: x[1].importance if x[1] else 0, reverse=True)
+            results = [pair[0] for pair in result_score_pairs]
+        
         # Combine chunks
         combined = "\n\n---\n\n".join(
             f"[{Path(c['source']).name}]\n{c['text']}" for c in results
@@ -274,17 +467,23 @@ class TokenShrink:
         # Estimate tokens
         original_tokens = len(combined.split())
         
-        # Compress if enabled
+        # ── REFRAG Step 3: Adaptive compression ──
         should_compress = compress if compress is not None else self._compression_enabled
         
         if should_compress and original_tokens > 100:
-            compressed, stats = self._compress(combined, max_tokens)
+            if use_adaptive:
+                compressed, stats = self._compress_adaptive(results, chunk_scores, max_tokens)
+            else:
+                compressed, stats = self._compress(combined, max_tokens)
+            
             return ShrinkResult(
                 context=compressed,
                 sources=sources,
                 original_tokens=stats["original"],
                 compressed_tokens=stats["compressed"],
                 ratio=stats["ratio"],
+                chunk_scores=chunk_scores,
+                dedup_removed=dedup_removed,
             )
         
         return ShrinkResult(
@@ -293,7 +492,85 @@ class TokenShrink:
             original_tokens=original_tokens,
             compressed_tokens=original_tokens,
             ratio=1.0,
+            chunk_scores=chunk_scores,
+            dedup_removed=dedup_removed,
         )
+
+    def _compress_adaptive(self, chunks: list[dict], scores: list[ChunkScore],
+                           max_tokens: int) -> tuple[str, dict]:
+        """
+        REFRAG-inspired adaptive compression: each chunk gets a different
+        compression ratio based on its importance score.
+        
+        High-importance chunks (high similarity + high density) are kept 
+        nearly intact. Low-importance chunks are compressed aggressively.
+        """
+        compressor = self._get_compressor()
+        
+        # Build a map from chunk source+score to its ChunkScore
+        score_map = {}
+        for cs in scores:
+            if not cs.deduplicated:
+                score_map[(cs.source, cs.similarity)] = cs
+        
+        compressed_parts = []
+        total_original = 0
+        total_compressed = 0
+        
+        for chunk in chunks:
+            text = f"[{Path(chunk['source']).name}]\n{chunk['text']}"
+            cs = score_map.get((chunk["source"], chunk.get("score", 0)))
+            
+            # Determine per-chunk ratio
+            if cs:
+                target_ratio = cs.compression_ratio
+            else:
+                target_ratio = 0.5  # Default fallback
+            
+            est_tokens = len(text.split())
+            
+            if est_tokens < 20:
+                # Too short to compress meaningfully
+                compressed_parts.append(text)
+                total_original += est_tokens
+                total_compressed += est_tokens
+                continue
+            
+            try:
+                # Compress with chunk-specific ratio
+                max_chars = 1500
+                if len(text) <= max_chars:
+                    result = compressor.compress_prompt(
+                        text,
+                        rate=target_ratio,
+                        force_tokens=["\n", ".", "!", "?"],
+                    )
+                    compressed_parts.append(result["compressed_prompt"])
+                    total_original += result["origin_tokens"]
+                    total_compressed += result["compressed_tokens"]
+                else:
+                    # Sub-chunk large texts
+                    parts = [text[i:i+max_chars] for i in range(0, len(text), max_chars)]
+                    for part in parts:
+                        if not part.strip():
+                            continue
+                        r = compressor.compress_prompt(part, rate=target_ratio)
+                        compressed_parts.append(r["compressed_prompt"])
+                        total_original += r["origin_tokens"]
+                        total_compressed += r["compressed_tokens"]
+            except Exception:
+                # Fallback: use uncompressed
+                compressed_parts.append(text)
+                total_original += est_tokens
+                total_compressed += est_tokens
+        
+        combined = "\n\n---\n\n".join(compressed_parts)
+        
+        return combined, {
+            "original": total_original,
+            "compressed": total_compressed,
+            "ratio": total_compressed / total_original if total_original else 1.0,
+        }
 
     def _compress(self, text: str, max_tokens: int) -> tuple[str, dict]:
         """Compress text using LLMLingua-2."""

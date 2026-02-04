@@ -160,24 +160,53 @@ template = PromptTemplate(
 2. **Search**: Finds relevant chunks via semantic similarity
 3. **Compress**: Removes redundancy while preserving meaning
 
-## Works With REFRAG
+## REFRAG-Inspired Features (v0.2)
 
-[REFRAG](https://arxiv.org/abs/2509.01092) (Meta, 2025) — [paper](https://arxiv.org/abs/2509.01092) · [github](https://github.com/Shaivpidadi/refrag) — demonstrated that RAG contexts have sparse, block-diagonal attention patterns — most retrieved passages barely interact during decoding. Their compress→sense→expand pipeline achieves 30x TTFT speedup at the **decoding** stage.
+Inspired by [REFRAG](https://arxiv.org/abs/2509.01092) (Meta, 2025) — which showed RAG contexts have sparse, block-diagonal attention patterns — TokenShrink v0.2 applies similar insights **upstream**, before tokens even reach the model:
 
-TokenShrink is the **upstream** complement: we reduce what goes into the context window *before* decoding starts. Stack them:
+### Adaptive Compression
+
+Not all chunks are equal. v0.2 scores each chunk by **importance** (semantic similarity × information density) and compresses accordingly:
+
+- High-importance chunks (relevant + information-dense) → kept nearly intact
+- Low-importance chunks → compressed aggressively
+- Net effect: better quality context within the same token budget
+
+```python
+result = ts.query("What are the rate limits?")
+for cs in result.chunk_scores:
+    print(f"{cs.source}: importance={cs.importance:.2f}, ratio={cs.compression_ratio:.2f}")
+```
+
+### Cross-Passage Deduplication
+
+Retrieved chunks often overlap (especially from similar documents). v0.2 detects near-duplicate passages via embedding similarity and removes redundant ones before compression:
+
+```python
+ts = TokenShrink(dedup_threshold=0.85)  # Default: 0.85
+result = ts.query("How to authenticate?")
+print(f"Removed {result.dedup_removed} redundant chunks")
+```
+
+### Chunk Importance Scoring
+
+Every chunk gets a composite score combining:
+- **Similarity** (0.7 weight) — How relevant is this to the query?
+- **Information density** (0.3 weight) — How much unique information does it contain?
+
+```bash
+# See scores in CLI
+tokenshrink query "deployment steps" --scores
+```
+
+### Stacking with REFRAG
+
+TokenShrink handles **upstream** optimization (retrieval + compression). REFRAG handles **downstream** decode-time optimization. Stack them:
 
 ```
-Your files → TokenShrink (retrieval + compression) → LLM → REFRAG (decode-time optimization)
-              ↓ 50-80% fewer tokens                        ↓ 30x faster first token
+Your files → TokenShrink (retrieve + dedupe + adaptive compress) → LLM → REFRAG (decode-time)
+              ↓ 50-80% fewer tokens                                      ↓ 30x faster TTFT
 ```
-
-Together, you get end-to-end savings across both retrieval and inference.
-
-### Roadmap: REFRAG-Inspired Features
-
-- **Adaptive compression** — Vary compression ratio per chunk based on information density (REFRAG's "sense" concept applied upstream)
-- **Block-diagonal deduplication** — Detect and remove cross-passage redundancy exploiting attention sparsity patterns
-- **Chunk importance scoring** — Score retrieved chunks by estimated attention weight, compress low-importance chunks more aggressively
 
 ## Configuration
 
@@ -189,6 +218,9 @@ ts = TokenShrink(
     chunk_overlap=50,            # Overlap between chunks
     device="auto",               # auto, mps, cuda, cpu
     compression=True,            # Enable LLMLingua
+    adaptive=True,               # REFRAG-inspired adaptive compression (v0.2)
+    dedup=True,                  # Cross-passage deduplication (v0.2)
+    dedup_threshold=0.85,        # Similarity threshold for dedup (v0.2)
 )
 ```
 
