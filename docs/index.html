@@ -438,8 +438,12 @@ result = ts.query(<span class="string">"What are the API rate limits?"</span>)
     <section style="padding: 60px 0;">
         <div class="container">
             <h2 style="text-align: center; font-size: 2rem; margin-bottom: 20px;">Works With <a href="https://arxiv.org/abs/2509.01092" style="color: var(--accent); text-decoration: none;">REFRAG</a></h2>
-            <p style="text-align: center; color: var(--muted); max-width: 700px; margin: 0 auto 30px;">
+            <p style="text-align: center; color: var(--muted); max-width: 700px; margin: 0 auto 20px;">
                 Meta's REFRAG achieves 30x decode-time speedup by exploiting attention sparsity in RAG contexts. TokenShrink is the upstream complement — we compress what enters the context window <em>before</em> decoding starts.
+            </p>
+            <p style="text-align: center; margin-bottom: 30px;">
+                <a href="https://arxiv.org/abs/2509.01092" style="color: var(--muted); text-decoration: none; margin: 0 10px;">📄 Paper</a>
+                <a href="https://github.com/Shaivpidadi/refrag" style="color: var(--muted); text-decoration: none; margin: 0 10px;">💻 GitHub</a>
             </p>
             <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 700px; margin: 0 auto 30px; font-family: 'SF Mono', Consolas, monospace; font-size: 0.9rem; color: var(--muted);">
                 Files → <span style="color: var(--accent);">TokenShrink</span> (50-80% fewer tokens) → LLM → <span style="color: #60a5fa;">REFRAG</span> (30x faster decode)<br><br>

@@ -162,7 +162,7 @@ template = PromptTemplate(
 
 ## Works With REFRAG
 
-[REFRAG](https://arxiv.org/abs/2509.01092) (Meta, 2025) demonstrated that RAG contexts have sparse, block-diagonal attention patterns — most retrieved passages barely interact during decoding. Their compress→sense→expand pipeline achieves 30x TTFT speedup at the **decoding** stage.
+[REFRAG](https://arxiv.org/abs/2509.01092) (Meta, 2025) — [paper](https://arxiv.org/abs/2509.01092) · [github](https://github.com/Shaivpidadi/refrag) — demonstrated that RAG contexts have sparse, block-diagonal attention patterns — most retrieved passages barely interact during decoding. Their compress→sense→expand pipeline achieves 30x TTFT speedup at the **decoding** stage.
 
 TokenShrink is the **upstream** complement: we reduce what goes into the context window *before* decoding starts. Stack them:
 
