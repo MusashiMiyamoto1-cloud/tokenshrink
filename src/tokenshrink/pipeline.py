@@ -613,7 +613,7 @@ class TokenShrink:
             "ratio": total_compressed / total_original if total_original else 1.0,
         }
 
-    def search(self, question: str, k: int = 5, min_score: float = 0.3) -> list[dict]:
+    def search(self, question: str, k: int = 5, min_score: float = 0.05) -> list[dict]:
         """Search without compression. Returns raw chunks with scores."""
         if self._index.ntotal == 0:
             return []

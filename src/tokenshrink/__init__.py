@@ -23,7 +23,13 @@ CLI:
     tokenshrink stats
 """
 
-from tokenshrink.pipeline import TokenShrink, ShrinkResult, ChunkScore
+__version__ = "0.2.4"
 
-__version__ = "0.2.0"
+def __getattr__(name):
+    if name in ("TokenShrink", "ShrinkResult", "ChunkScore"):
+        from tokenshrink.pipeline import TokenShrink, ShrinkResult, ChunkScore
+        globals().update({"TokenShrink": TokenShrink, "ShrinkResult": ShrinkResult, "ChunkScore": ChunkScore})
+        return globals()[name]
+    raise AttributeError(f"module 'tokenshrink' has no attribute {name!r}")
+
 __all__ = ["TokenShrink", "ShrinkResult", "ChunkScore"]

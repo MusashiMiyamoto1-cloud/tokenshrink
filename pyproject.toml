@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tokenshrink"
-version = "0.2.0"
+version = "0.2.4"
 description = "Cut your AI costs 50-80%. FAISS retrieval + LLMLingua compression + REFRAG-inspired adaptive optimization."
 readme = "README.md"
 license = "MIT"

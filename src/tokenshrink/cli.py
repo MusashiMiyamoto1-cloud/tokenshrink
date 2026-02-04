@@ -11,9 +11,22 @@ Usage:
 import argparse
 import sys
 import json
+import os
 from pathlib import Path
 
-from tokenshrink import TokenShrink, __version__
+# Early suppression: check for --quiet or --json BEFORE heavy imports
+if "--quiet" in sys.argv or "--json" in sys.argv:
+    os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["TQDM_DISABLE"] = "1"
+    import warnings
+    warnings.filterwarnings("ignore")
+    import logging
+    logging.disable(logging.WARNING)
+
+from tokenshrink import __version__
 
 
 def main():
@@ -31,6 +44,11 @@ def main():
         "--json",
         action="store_true",
         help="Output as JSON",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress model loading messages",
     )
     
     subparsers = parser.add_subparsers(dest="command", help="Commands")
@@ -118,6 +136,9 @@ def main():
         parser.print_help()
         sys.exit(0)
     
+    # Lazy import to avoid loading ML models for --help/--version
+    from tokenshrink import TokenShrink
+    
     # Determine compression setting
     compression = True
     if hasattr(args, 'no_compress') and args.no_compress:
@@ -194,6 +215,9 @@ def main():
             if result.sources:
                 print(f"Sources: {', '.join(Path(s).name for s in result.sources)}")
                 print(f"Stats: {result.savings}")
+                
+                if result.savings_pct == 0.0:
+                    print("  Tip: Install llmlingua for compression: pip install llmlingua")
                 
                 if getattr(args, 'scores', False) and result.chunk_scores:
                     print("\nChunk Importance Scores:")
