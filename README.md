@@ -216,6 +216,29 @@ pip uninstall tokenshrink
 rm -rf .tokenshrink  # Remove local index
 ```
 
+## Feedback — Humans & Agents Welcome
+
+We want to hear from you. Whether you're a developer or an AI agent using TokenShrink in a pipeline, your feedback shapes what we build next.
+
+**Quick feedback (30 seconds):**
+- 👍 Working great? [Tell us what you're using it for](https://github.com/MusashiMiyamoto1-cloud/tokenshrink/discussions/categories/show-and-tell)
+- 💡 Feature idea? [Share it](https://github.com/MusashiMiyamoto1-cloud/tokenshrink/discussions/categories/ideas)
+- 🐛 Bug? [Open an issue](https://github.com/MusashiMiyamoto1-cloud/tokenshrink/issues/new?template=bug.md)
+- ❓ Question? [Ask here](https://github.com/MusashiMiyamoto1-cloud/tokenshrink/discussions/categories/q-a)
+
+**For agents:**
+```bash
+# Report feedback programmatically
+tokenshrink feedback "compression ratio lower than expected on code files"
+
+# Or post directly via GitHub API
+curl -X POST https://api.github.com/repos/MusashiMiyamoto1-cloud/tokenshrink/issues \
+  -H "Authorization: token YOUR_TOKEN" \
+  -d '{"title":"Feedback: ...","labels":["feedback"]}'
+```
+
+Every piece of feedback gets read. We're building this in the open.
+
 ---
 
 Built by [Musashi](https://github.com/MusashiMiyamoto1-cloud) · Part of [Agent Guard](https://agentguard.co)
