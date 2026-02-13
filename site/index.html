@@ -317,6 +317,7 @@
                     <a href="https://github.com/MusashiMiyamoto1-cloud/tokenshrink">GitHub</a>
                     <a href="https://pypi.org/project/tokenshrink/">PyPI</a>
                     <a href="https://agentguard.co" style="color: #7b2fff;">Agent Guard</a>
+                    <a href="https://pypi.org/project/infershrink/" style="color: #f59e0b;">InferShrink</a>
                 </div>
             </nav>
         </div>
@@ -483,14 +484,32 @@ result = ts.query(<span class="string">"What are the API rate limits?"</span>)
     </section>
 
     <section style="background: var(--card); border-top: 1px solid var(--border); padding: 60px 0;">
-        <div class="container" style="display: flex; align-items: center; gap: 30px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 250px;">
-                <p style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px;">Also from Musashi Labs</p>
-                <h3 style="margin-bottom: 8px;"><a href="https://agentguard.co" style="color: #00d4ff; text-decoration: none;">🛡️ Agent Guard</a></h3>
-                <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">Security scanner for AI agent configurations. 20 rules, A-F scoring, CI/CD ready. Find exposed secrets, injection risks, and misconfigs before they ship.</p>
-                <code style="color: #00d4ff; font-size: 0.85rem;">npx @musashimiyamoto/agent-guard scan .</code>
+        <div class="container">
+            <p style="color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 30px; text-align: center;">Also from Musashi Labs</p>
+
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px 30px; max-width: 700px; margin: 0 auto 30px; text-align: center;">
+                <p style="color: var(--fg); font-size: 1.1rem; line-height: 1.6;"><strong>TokenShrink</strong> compresses prompts. <strong>InferShrink</strong> routes to cheaper models. Together, <span style="color: var(--accent); font-weight: 700;">save 80%+</span>.</p>
             </div>
-            <a href="https://agentguard.co" style="display: inline-block; padding: 12px 24px; background: linear-gradient(90deg, #00d4ff, #7b2fff); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; white-space: nowrap;">View Agent Guard →</a>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-bottom: 8px;"><a href="https://agentguard.co" style="color: #00d4ff; text-decoration: none;">🛡️ Agent Guard</a></h3>
+                        <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">Security scanner for AI agent configurations. 20 rules, A-F scoring, CI/CD ready. Find exposed secrets, injection risks, and misconfigs before they ship.</p>
+                        <code style="color: #00d4ff; font-size: 0.85rem;">npx @musashimiyamoto/agent-guard scan .</code>
+                    </div>
+                    <a href="https://agentguard.co" style="display: inline-block; padding: 12px 24px; background: linear-gradient(90deg, #00d4ff, #7b2fff); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; white-space: nowrap;">View Agent Guard →</a>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3 style="margin-bottom: 8px;"><a href="https://pypi.org/project/infershrink/" style="color: #f59e0b; text-decoration: none;">⚡ InferShrink</a></h3>
+                        <p style="color: var(--muted); font-size: 0.95rem; line-height: 1.5;">Smart model routing + prompt compression. Uses TokenShrink under the hood.</p>
+                        <code style="color: #f59e0b; font-size: 0.85rem;">pip install infershrink[compression]</code>
+                    </div>
+                    <a href="https://pypi.org/project/infershrink/" style="display: inline-block; padding: 12px 24px; background: linear-gradient(90deg, #f59e0b, #ef4444); color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; white-space: nowrap;">View InferShrink →</a>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -499,6 +518,7 @@ result = ts.query(<span class="string">"What are the API rate limits?"</span>)
             <p style="margin-bottom: 8px; color: var(--muted);"><strong style="color: var(--fg);">Musashi Labs</strong> — Open-source tools for the agent ecosystem</p>
             <p>
                 <a href="https://agentguard.co">Agent Guard</a> · 
+                <a href="https://pypi.org/project/infershrink/">InferShrink</a> · 
                 <a href="https://github.com/MusashiMiyamoto1-cloud/tokenshrink">TokenShrink</a> · 
                 <a href="https://x.com/MMiyamoto45652">@Musashi</a> · 
                 MIT License
